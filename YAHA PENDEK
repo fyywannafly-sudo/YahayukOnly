@@ -13,13 +13,12 @@ local tracksURLs = {
     ["2"] = "https://raw.githubusercontent.com/fyywannafly-sudo/YahayukOnly/refs/heads/main/YNT_P2.json",
     ["3"] = "https://raw.githubusercontent.com/fyywannafly-sudo/YahayukOnly/refs/heads/main/YNT_P3.json",
     ["4"] = "https://raw.githubusercontent.com/fyywannafly-sudo/YahayukOnly/refs/heads/main/YNT_P4.json",
-    ["5"] = "https://raw.githubusercontent.com/fyywannafly-sudo/YahayukOnly/refs/heads/main/YNT_P4_1.json",
-    ["6"] = "https://raw.githubusercontent.com/fyywannafly-sudo/YahayukOnly/refs/heads/main/YNT_P5.json",
-    ["7"] = "https://raw.githubusercontent.com/fyywannafly-sudo/YahayukOnly/refs/heads/main/YNT_P6.json",    
+    ["5"] = "https://raw.githubusercontent.com/fyywannafly-sudo/YahayukOnly/refs/heads/main/YNT_P5.json",
+    ["6"] = "https://raw.githubusercontent.com/fyywannafly-sudo/YahayukOnly/refs/heads/main/YNT_P6.json",    
 }
 
 local savedTracks = {}
-local orderedTrackNames = {"1", "2", "3", "4", "5", "6", "7"}
+local orderedTrackNames = {"1", "2", "3", "4", "5", "6"}
 
 -- Load Tracks
 for _, name in ipairs(orderedTrackNames) do
