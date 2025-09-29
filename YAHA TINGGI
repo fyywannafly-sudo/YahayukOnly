@@ -57,8 +57,14 @@ local function getHRP()
 end
 
 -- Respawn function
+-- Fungsi teleport menggantikan respawn
 local function respawnPlayer()
-    player.Character:BreakJoints()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    -- Teleport ke SummitReturnPad
+    local pad = workspace:WaitForChild("SummitReturnPad")
+    hrp.CFrame = pad.CFrame + Vector3.new(0, 5, 0) -- offset supaya ga nancep di part
 end
 
 -- FUNCTION PLAYTRACK
@@ -103,35 +109,31 @@ while elapsed < duration and running do
 
     local t = math.clamp(elapsed / duration, 0, 1)
     local alpha
-    if deltaY > 2 then
-        alpha = 1 - (1 - t) ^ 3
-    elseif deltaY < -2 then
-        alpha = t ^ 3
+if deltaY > 2 then
+    alpha = t ^ 2 -- Naik → awal lambat, akhir cepat
+elseif deltaY < -2 then
+    alpha = 1 - (1 - t) ^ 2 -- Turun → awal cepat, akhir lambat
+else
+    alpha = t -- Rata → linear
+end
+
+
+local currentPos
+if math.abs(deltaY) > 5 then
+    -- Smooth pakai easing curve biar natural (loncat/jatuh)
+    local easedT
+    if deltaY > 0 then
+        -- Naik → awal lambat, akhir cepat
+        easedT = t ^ 2
     else
-        alpha = t
+        -- Turun → awal cepat, akhir melambat
+        easedT = 1 - (1 - t) ^ 2
     end
+    currentPos = startPos:Lerp(targetPos, easedT)
+else
+    currentPos = startPos:Lerp(targetPos, alpha)
+end
 
-    local currentPos
-    if math.abs(deltaY) > 5 then
-        -- Tangga curam, pisahkan horizontal & vertical biar ga ngelayang
-        local t_h = math.clamp(elapsed / (duration * 0.7), 0, 1)
-        local t_v = math.clamp(elapsed / (duration * 0.3), 0, 1)
-
-        local horizPos = Vector3.new(
-            startPos.X + (targetPos.X - startPos.X) * t_h,
-            startPos.Y,
-            startPos.Z + (targetPos.Z - startPos.Z) * t_h
-        )
-        local vertPos = Vector3.new(
-            targetPos.X,
-            startPos.Y + (targetPos.Y - startPos.Y) * t_v,
-            targetPos.Z
-        )
-
-        currentPos = Vector3.new(horizPos.X, vertPos.Y, horizPos.Z)
-    else
-        currentPos = startPos:Lerp(targetPos, alpha)
-    end
 
 -- Hitung arah horizontal
 local direction = Vector3.new(targetPos.X - startPos.X, 0, targetPos.Z - startPos.Z)
@@ -215,36 +217,29 @@ while elapsed < duration and running do
     elapsed += RunService.Heartbeat:Wait()
 
     local t = math.clamp(elapsed / duration, 0, 1)
-    local alpha
-    if deltaY > 2 then
-        alpha = 1 - (1 - t) ^ 3
-    elseif deltaY < -2 then
-        alpha = t ^ 3
+  local alpha
+if deltaY > 2 then
+    alpha = t ^ 2
+elseif deltaY < -2 then
+    alpha = 1 - (1 - t) ^ 2
+else
+    alpha = t
+end
+
+
+local currentPos
+if math.abs(deltaY) > 5 then
+    local easedT
+    if deltaY > 0 then
+        easedT = t ^ 2
     else
-        alpha = t
+        easedT = 1 - (1 - t) ^ 2
     end
+    currentPos = startPos:Lerp(targetPos, easedT)
+else
+    currentPos = startPos:Lerp(targetPos, alpha)
+end
 
-    local currentPos
-    if math.abs(deltaY) > 5 then
-        -- Tangga curam, pisahkan horizontal & vertical biar ga ngelayang
-        local t_h = math.clamp(elapsed / (duration * 0.7), 0, 1)
-        local t_v = math.clamp(elapsed / (duration * 0.3), 0, 1)
-
-        local horizPos = Vector3.new(
-            startPos.X + (targetPos.X - startPos.X) * t_h,
-            startPos.Y,
-            startPos.Z + (targetPos.Z - startPos.Z) * t_h
-        )
-        local vertPos = Vector3.new(
-            targetPos.X,
-            startPos.Y + (targetPos.Y - startPos.Y) * t_v,
-            targetPos.Z
-        )
-
-        currentPos = Vector3.new(horizPos.X, vertPos.Y, horizPos.Z)
-    else
-        currentPos = startPos:Lerp(targetPos, alpha)
-    end
 
 -- Hitung arah horizontal
 local direction = Vector3.new(targetPos.X - startPos.X, 0, targetPos.Z - startPos.Z)
@@ -328,26 +323,24 @@ local function resumeTrackLoop()
         end
     end
     
-    if running then
-        print("Completed all tracks, respawning...")
-        respawnPlayer()
-        player.CharacterAdded:Wait()
-        getHRP()
-        task.wait(1)
+if running then
+    print("Completed all tracks, teleporting to SummitReturnPad...")
+    respawnPlayer()
+    task.wait(1)
 
-        -- Reset supaya mulai lagi dari awal
-        resumeData = {
-            trackName = orderedTrackNames[1],
-            trackIndex = 1,
-            pointIndex = 1,
-            lastFlatDir = Vector3.new(0, 0, 1)
-        }
-        
-        -- Lanjutkan loop setelah respawn
-        if running then
-            resumeTrackLoop()  -- Panggil diri sendiri untuk loop terus menerus
-        end
+    -- Reset supaya mulai lagi dari awal
+    resumeData = {
+        trackName = orderedTrackNames[1],
+        trackIndex = 1,
+        pointIndex = 1,
+        lastFlatDir = Vector3.new(0, 0, 1)
+    }
+
+    -- Lanjutkan loop setelah teleport
+    if running then
+        resumeTrackLoop()
     end
+end
 end
 
 -- FUNCTION RUNAUTOSUMMITLOOP (YANG DIPERBAIKI)
@@ -378,15 +371,14 @@ local function runAutoSummitLoop()
         end
 
         if running then
-            print("Completed all tracks, respawning...")
-            respawnPlayer()
-            player.CharacterAdded:Wait()
-            getHRP()
-            task.wait(1)
-            
-            -- Reset track index untuk loop berikutnya
-            resumeData.trackIndex = 1
-        end
+    print("Completed all tracks, teleporting to SummitReturnPad...")
+    respawnPlayer()
+    task.wait(1)
+
+    -- Reset track index untuk loop berikutnya
+    resumeData.trackIndex = 1
+end
+
     end
     print("Auto summit loop stopped")
 end
