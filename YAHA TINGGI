@@ -56,8 +56,7 @@ local function getHRP()
     return char:WaitForChild("HumanoidRootPart")
 end
 
--- Respawn function
--- Fungsi teleport menggantikan respawn
+
 local function respawnPlayer()
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
@@ -66,6 +65,49 @@ local function respawnPlayer()
     local pad = workspace:WaitForChild("SummitReturnPad")
     hrp.CFrame = pad.CFrame + Vector3.new(0, 5, 0) -- offset supaya ga nancep di part
 end
+--------------
+-- === Jump Animation Loader ===
+local function getJumpAnim(humanoid)
+    local animate = humanoid.Parent:FindFirstChild("Animate")
+    if animate and animate:FindFirstChild("jump") then
+        local anim = animate.jump:FindFirstChildOfClass("Animation")
+        if anim then
+            local animator = humanoid:FindFirstChildOfClass("Animator")
+            if animator then
+                return animator:LoadAnimation(anim)
+            end
+        end
+    end
+    return nil
+end
+
+local jumpTrack = nil
+
+-- FUNCTION TRIGGERJUMP
+------------
+local lastLanding = 0
+local landingCooldown = 0.2 -- cuma buat cegah auto-jump pas landing
+
+local function triggerJump(humanoid, isClimb)
+    if humanoid then
+        local state = humanoid:GetState()
+
+        -- Kalau turun & baru landing → kasih cooldown
+        if not isClimb and state == Enum.HumanoidStateType.Landed then
+            lastLanding = tick()
+            return
+        end
+
+        -- Kalau lagi climb (deltaY > 3), selalu boleh lompat
+        -- Kalau bukan climb (misal jatuh), tetap pake cooldown biar ga auto jump
+        if (isClimb or state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.Freefall)
+            and (isClimb or tick() - lastLanding > landingCooldown) then
+
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end
+
 
 -- FUNCTION PLAYTRACK
 function playTrack(track, trackName)
@@ -93,7 +135,13 @@ function playTrack(track, trackName)
         local targetPos = track[i]
 
         local distance = (targetPos - startPos).Magnitude
-        local deltaY = targetPos.Y - startPos.Y
+ local deltaY = targetPos.Y - startPos.Y
+if deltaY > 3 then
+    triggerJump(humanoid, true) -- spam jump untuk climb
+end
+
+
+
 
         local duration = math.max(distance / speed, 0.05)
 
@@ -201,7 +249,13 @@ function playTrackFromPoint(track, trackName, startPointIndex, lastDirection)
         local targetPos = track[i]
 
         local distance = (targetPos - startPos).Magnitude
-        local deltaY = targetPos.Y - startPos.Y
+ local deltaY = targetPos.Y - startPos.Y
+if deltaY > 3 then
+    triggerJump(humanoid, true) -- spam jump untuk climb
+end
+
+
+
 
         local duration = math.max(distance / speed, 0.05)
 
